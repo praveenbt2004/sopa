@@ -32,6 +32,7 @@ def cellpose(
     gaussian_sigma: float = typer.Option(
         1, help="Parameter for scipy gaussian_filter (applied before running cellpose)"
     ),
+    gpu: bool = typer.Option(False, "--gpu/--no-gpu", help="Use GPU acceleration"),
     patch_index: int = typer.Option(
         default=None,
         help="Index of the patch on which cellpose should be run. NB: the number of patches is `len(sdata['image_patches'])`",
@@ -57,6 +58,9 @@ def cellpose(
     from sopa._constants import SopaKeys
 
     channels = channels if isinstance(channels, list) else [channels]
+
+    if gpu:
+        method_kwargs["gpu"] = True
 
     _run_staining_segmentation(
         sdata_path,
