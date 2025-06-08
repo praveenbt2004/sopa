@@ -89,6 +89,7 @@ def cellpose_patch(
     channels: list[str],
     model_type: str = "cyto3",
     pretrained_model: str | bool = False,
+    gpu: bool = False,
     cellpose_model_kwargs: dict | None = None,
     **cellpose_eval_kwargs: int,
 ) -> Callable:
@@ -99,6 +100,7 @@ def cellpose_patch(
         channels: List of channel names
         model_type: Cellpose model type
         pretrained_model: Path to the pretrained model to be loaded, or `False`
+        gpu: Whether to use the GPU when instantiating the Cellpose model
         cellpose_model_kwargs: Kwargs to be provided to the `cellpose.models.CellposeModel` object
         **cellpose_eval_kwargs: Kwargs to be provided to `model.eval` (where `model` is a `cellpose.models.CellposeModel` object)
 
@@ -106,7 +108,7 @@ def cellpose_patch(
         A `callable` whose input is an image of shape `(C, Y, X)` and output is a cell mask of shape `(Y, X)`. Each mask value `>0` represent a unique cell ID
     """
     try:
-        from cellpose import models
+        from cellpose.models import CellposeModel
     except ImportError:
         raise ImportError("To use cellpose, you need its corresponding sopa extra: `pip install 'sopa[cellpose]'`.")
 
@@ -116,17 +118,24 @@ def cellpose_patch(
         channels: list[str],
         model_type: str,
         pretrained_model: str | bool = False,
+        gpu: bool = False,
         cellpose_model_kwargs: dict | None = None,
         **cellpose_eval_kwargs: int,
     ):
         warnings.filterwarnings("ignore", message="You are using `torch.load` with `weights_only=False`")
 
         cellpose_model_kwargs = cellpose_model_kwargs or {}
+        if "gpu" in cellpose_model_kwargs:
+            gpu = cellpose_model_kwargs.pop("gpu")
 
         if pretrained_model:
-            model = models.CellposeModel(pretrained_model=pretrained_model, **cellpose_model_kwargs)
+            model = CellposeModel(
+                pretrained_model=pretrained_model,
+                gpu=gpu,
+                **cellpose_model_kwargs,
+            )
         else:
-            model = models.Cellpose(model_type=model_type, **cellpose_model_kwargs)
+            model = CellposeModel(model_type=model_type, gpu=gpu, **cellpose_model_kwargs)
 
         if isinstance(channels, str) or len(channels) == 1:
             channels = [0, 0]  # gray scale
@@ -144,6 +153,7 @@ def cellpose_patch(
         channels=channels,
         model_type=model_type,
         pretrained_model=pretrained_model,
+        gpu=gpu,
         cellpose_model_kwargs=cellpose_model_kwargs,
         **cellpose_eval_kwargs,
     )
